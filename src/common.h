@@ -16,7 +16,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "config.h"
+// #include "config.h"
 #include "rpc_constants.h"
 #include "tweakme.h"
 

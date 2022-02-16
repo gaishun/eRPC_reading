@@ -17,17 +17,17 @@ Nexus::Nexus(std::string local_uri, size_t numa_node, size_t num_bg_threads)
       num_bg_threads_(num_bg_threads),
       heartbeat_mgr_(hostname_, sm_udp_port_, freq_ghz_,
                      kMachineFailureTimeoutMs) {
+  ERPC_WARN("construct function\n");
   if (kTesting) {
     ERPC_WARN("eRPC Nexus: Testing enabled. Perf will be low.\n");
   }
-
   rt_assert(sm_udp_port_ >= kBaseSmUdpPort &&
                 sm_udp_port_ < (kBaseSmUdpPort + kMaxNumERpcProcesses),
             "Invalid management UDP port");
   rt_assert(num_bg_threads <= kMaxBgThreads, "Too many background threads");
   rt_assert(numa_node < kMaxNumaNodes, "Invalid NUMA node");
 
-  kill_switch_ = false;
+  kill_switch_ = false;//gs: close background threads.?
 
   // Launch background threads
   ERPC_INFO("eRPC Nexus: Launching %zu background threads.\n", num_bg_threads);

@@ -14,7 +14,7 @@ namespace erpc {
 // Forward declaration for friendship
 template <typename T>
 class Rpc;
-
+ 
 /**
  * @brief A per-process library object used for initializing eRPC
  */

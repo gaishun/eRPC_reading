@@ -30,12 +30,16 @@ IBTransport::IBTransport(uint16_t sm_udp_port, uint8_t rpc_id, uint8_t phy_port,
   } else {
     rt_assert(kHeadroom == 40, "Invalid packet header headroom for RoCE");
   }
+  ERPC_WARN("TCPORT_INIT\n");
 
   common_resolve_phy_port(phy_port, kMTU, kTransportType, resolve);
   ib_resolve_phy_port();
+  ERPC_WARN("phy_port_success\n");
 
-  init_verbs_structs();
+  init_verbs_structs();  
+  ERPC_WARN("init_verbs_success\n");
   init_mem_reg_funcs();
+  ERPC_WARN("reg_func_success\n");
 
   ERPC_INFO("IBTransport created for ID %u. Device %s, port %d.\n", rpc_id,
             resolve.ib_ctx->device->name, resolve.dev_port_id);
