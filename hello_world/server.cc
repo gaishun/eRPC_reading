@@ -2,6 +2,7 @@
 erpc::Rpc<erpc::CTransport> *rpc;
 
 void req_handler(erpc::ReqHandle *req_handle, void *) {
+  
   auto &resp = req_handle->pre_resp_msgbuf_;
   rpc->resize_msg_buffer(&resp, kMsgSize);
   sprintf(reinterpret_cast<char *>(resp.buf_), "hello");

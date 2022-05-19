@@ -157,6 +157,7 @@ class HugeAlloc {
 #else
     assert(size >= 1 && size <= k_max_class_size);
     // Use bit shift instead of division to make debug-mode code a faster
+    // ! ? 这个不明白
     return msb_index(static_cast<int>((size - 1) >> k_min_class_bit_shift));
 #endif
   }
@@ -225,7 +226,7 @@ class HugeAlloc {
   bool reserve_hugepages(size_t size);
 
   std::vector<shm_region_t> shm_list_;  /// SHM regions by increasing alloc size
-  std::vector<Buffer> freelist_[k_num_classes];  /// Per-class freelist
+  std::vector<Buffer> freelist_[k_num_classes];  /// Per-class freelist 
 
   SlowRand slow_rand_;      /// RNG to generate SHM keys
   const size_t numa_node_;  /// NUMA node on which all memory is allocated

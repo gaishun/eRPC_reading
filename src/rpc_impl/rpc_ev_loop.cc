@@ -12,13 +12,17 @@ void Rpc<TTr>::run_event_loop_do_one_st() {
 
   // The packet RX code uses ev_loop_tsc as the RX timestamp, so it must be
   // next to ev_loop_tsc stamping.
+  // datapath的时间戳
   ev_loop_tsc_ = dpath_rdtsc();
+  // TODO 处理完成的时间戳？ 这个函数好长，之后再看
   process_comps_st();  // RX
-
+  // TODO 这里应该是给收到了credit的 ssolt 开始执行
   process_credit_stall_queue_st();    // TX
+  // * 这里是用来限速的
   if (kCcPacing) process_wheel_st();  // TX
 
   // Drain all packets
+  // 所有的未发送的包全部发送出去
   if (tx_batch_i_ > 0) do_tx_burst_st();
 
   if (unlikely(multi_threaded_)) {

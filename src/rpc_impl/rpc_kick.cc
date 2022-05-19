@@ -9,6 +9,7 @@ void Rpc<TTr>::kick_req_st(SSlot *sslot) {
   assert(credits > 0);  // Precondition
 
   auto &ci = sslot->client_info_;
+  // ? 确定???
   size_t sending =
       (std::min)(credits, sslot->tx_msgbuf_->num_pkts_ - ci.num_tx_);
   bool bypass = can_bypass_wheel(sslot);

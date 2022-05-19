@@ -36,15 +36,15 @@ Nexus::Nexus(std::string local_uri, size_t numa_node, size_t num_bg_threads)
 
     BgThreadCtx bg_thread_ctx;
     bg_thread_ctx.kill_switch_ = &kill_switch_;
-    bg_thread_ctx.req_func_arr_ = &req_func_arr_;
-    bg_thread_ctx.tls_registry_ = &tls_registry_;
-    bg_thread_ctx.bg_thread_index_ = i;
-    bg_thread_ctx.bg_req_queue_ = &bg_req_queue_[i];
+    bg_thread_ctx.req_func_arr_ = &req_func_arr_;//* 同一个地址，之后应该可以注册函数使用
+    bg_thread_ctx.tls_registry_ = &tls_registry_;//* 线程本地仓库
+    bg_thread_ctx.bg_thread_index_ = i;//* 后台线程索引编号
+    bg_thread_ctx.bg_req_queue_ = &bg_req_queue_[i];//* 后台线程req队列
 
-    bg_thread_arr_[i] = std::thread(bg_thread_func, bg_thread_ctx);
+    bg_thread_arr_[i] = std::thread(bg_thread_func, bg_thread_ctx);//* 后台线程索引数组
 
-    // Wait for the launched thread to grab a eRPC thread ID, otherwise later
-    // background threads or the foreground thread can grab ID = i.
+    // ? Wait for the launched thread to grab a eRPC thread ID, otherwise later
+    // ? background threads or the foreground thread can grab ID = i.
     while (tls_registry_.cur_etid_ == i) {
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     }

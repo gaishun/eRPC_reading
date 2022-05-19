@@ -13,7 +13,7 @@ void Rpc<TTr>::handle_connect_req_st(const SmPkt &sm_pkt) {
   assert(in_dispatch());
   assert(sm_pkt.pkt_type_ == SmPktType::kConnectReq &&
          sm_pkt.server_.rpc_id_ == rpc_id_);
-
+  
   char issue_msg[kMaxIssueMsgLen];  // The basic issue message
   sprintf(issue_msg, "Rpc %u: Received connect request from %s. Issue", rpc_id_,
           sm_pkt.client_.name().c_str());

@@ -74,7 +74,8 @@ template <class TTr>
 void Rpc<TTr>::send_sm_req_st(Session *session) {
   assert(in_dispatch());
 
-  sm_pending_reqs_.insert(session->local_session_num_);  // Duplicates are fine
+  sm_pending_reqs_.insert(session->local_session_num_);  // Duplicates are fine * 副本？
+  // * 获取时间戳
   session->client_info_.sm_req_ts_ = rdtsc();
 
   SmPkt sm_pkt;

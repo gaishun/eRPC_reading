@@ -29,7 +29,7 @@ static void format_pkthdr(pkthdr_t *pkthdr,
   assert(udp_hdr->check_ == 0);
   udp_hdr->len_ = htons(pkt_size - sizeof(eth_hdr_t) - sizeof(ipv4_hdr_t));
 }
-
+ // * 第一个是时间戳，第二个应该是有几个要发出去。
 void DpdkTransport::tx_burst(const tx_burst_item_t *tx_burst_arr,
                              size_t num_pkts) {
   rte_mbuf *tx_mbufs[kPostlist];
@@ -38,10 +38,12 @@ void DpdkTransport::tx_burst(const tx_burst_item_t *tx_burst_arr,
     const tx_burst_item_t &item = tx_burst_arr[i];
     const MsgBuffer *msg_buffer = item.msg_buffer_;
 
+    // * ？申请了一个新的buf
     tx_mbufs[i] = rte_pktmbuf_alloc(mempool_);
     assert(tx_mbufs[i] != nullptr);
 
     pkthdr_t *pkthdr;
+    // * 如果是第零个包，只用一个段就可以了
     if (item.pkt_idx_ == 0) {
       // This is the first packet, so we need only one seg. This can be CR/RFR.
       pkthdr = msg_buffer->get_pkthdr_0();
@@ -51,25 +53,40 @@ void DpdkTransport::tx_burst(const tx_burst_item_t *tx_burst_arr,
       tx_mbufs[i]->nb_segs = 1;
       tx_mbufs[i]->pkt_len = pkt_size;
       tx_mbufs[i]->data_len = pkt_size;
+      // * rte_pktmbuf_mtod获得数据帧的起始指针。
+      // ! 这里将第一个包的所有的内容都复制过去了。
       memcpy(rte_pktmbuf_mtod(tx_mbufs[i], uint8_t *), pkthdr, pkt_size);
-    } else {
+    } else { // * 如果不是第一个包，就需要两个段？
       // This is not the first packet, so we need 2 segments.
       pkthdr = msg_buffer->get_pkthdr_n(item.pkt_idx_);
+      // 这一个包的大小就是pkt_size 
       const size_t pkt_size =
           msg_buffer->get_pkt_size<kMaxDataPerPkt>(item.pkt_idx_);
       format_pkthdr(pkthdr, item, pkt_size);
 
       tx_mbufs[i]->nb_segs = 2;
       tx_mbufs[i]->pkt_len = pkt_size;
+      // * 这个段的长度就是头的大小
       tx_mbufs[i]->data_len = sizeof(pkthdr_t);
+      // * rte_pktmbuf_mtod获得数据帧的起始指针。
+      // * 把这个包头的内容复制进去了
       memcpy(rte_pktmbuf_mtod(tx_mbufs[i], uint8_t *), pkthdr,
              sizeof(pkthdr_t));
 
+      // * 下一个段是什么？存了什么？
       tx_mbufs[i]->next = rte_pktmbuf_alloc(mempool_);
       assert(tx_mbufs[i]->next != nullptr);
+      // * 下一个buf的数据长度等于包大小减去头的长度，也就是数据段的长度。
       tx_mbufs[i]->next->data_len = pkt_size - sizeof(pkthdr_t);
+      // * 理论上这里不应该拷贝过去这个包中数据的所有内容过去吗？
+             // * 获得tx_mbufs[i]->next'数据段'的地址，
       memcpy(rte_pktmbuf_mtod(tx_mbufs[i]->next, uint8_t *),
+             // * 获得msg_buffer[第几个包*没个包最大的大小]（为什么是这个位置？）
+             // TODO 这个buf_应该是只想这个msg_buffer数据第一个字节的地址，但是为什么要用数组这个位置呢？
+             // * 注意这里用的是引用。
+             // ? 难道，这个数组的buf_使用的都是一个buf_ 需要自己的位置的时候定位过来？，然后把头摘出来？
              &msg_buffer->buf_[item.pkt_idx_ * kMaxDataPerPkt],
+             // * 数据段长度
              pkt_size - sizeof(pkthdr_t));
     }
 
@@ -78,7 +95,7 @@ void DpdkTransport::tx_burst(const tx_burst_item_t *tx_burst_arr,
         item.drop_, pkthdr->to_string().c_str(),
         frame_header_to_string(&pkthdr->headroom_[0]).c_str());
   }
-
+  // * 这里把rte_eth_tx_burst这个：tx_mbufs 发出去？一共有num_pkts个包？
   size_t nb_tx_new = rte_eth_tx_burst(phy_port_, qp_id_, tx_mbufs, num_pkts);
   if (unlikely(nb_tx_new != num_pkts)) {
     size_t retry_count = 0;

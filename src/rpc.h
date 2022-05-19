@@ -143,6 +143,7 @@ class Rpc {
     size_t max_num_pkts = data_size_to_num_pkts(max_data_size);
 
     lock_cond(&huge_alloc_lock_);
+    // * 分配空间,数据大小，加上包头的大小
     Buffer buffer =
         huge_alloc_->alloc(max_data_size + (max_num_pkts * sizeof(pkthdr_t)));
     unlock_cond(&huge_alloc_lock_);
@@ -152,7 +153,7 @@ class Rpc {
       msg_buffer.buf_ = nullptr;
       return msg_buffer;
     }
-
+    // * 初始化，这里数据存在buffer中，数据区大小max_data_size，总计有max_num_pkts个包。
     MsgBuffer msg_buffer(buffer, max_data_size, max_num_pkts);
     return msg_buffer;
   }
@@ -711,12 +712,13 @@ class Rpc {
                                       size_t *tx_ts) {
     assert(in_dispatch());
     const MsgBuffer *tx_msgbuf = sslot->tx_msgbuf_;
-
+    // * 注意这里是引用咯
     Transport::tx_burst_item_t &item = tx_burst_arr_[tx_batch_i_];
     item.routing_info_ = sslot->session_->remote_routing_info_;
+    // * 指针指向
     item.msg_buffer_ = const_cast<MsgBuffer *>(tx_msgbuf);
-    item.pkt_idx_ = pkt_idx;
-    if (kCcRTT) item.tx_ts_ = tx_ts;
+    item.pkt_idx_ = pkt_idx; // 不是包的数量，而是现在包的索引
+    if (kCcRTT) item.tx_ts_ = tx_ts; // 时间戳
 
     if (kTesting) {
       item.drop_ = roll_pkt_drop();
@@ -730,6 +732,7 @@ class Rpc {
                sslot->progress_str().c_str(), item.drop_ ? " Drop." : "");
 
     tx_batch_i_++;
+    // * 积攒了多少个包就发送出去，如果不够就别发送。
     if (tx_batch_i_ == TTr::kPostlist) do_tx_burst_st();
   }
 
@@ -804,19 +807,21 @@ class Rpc {
     // Measure TX burst size
     dpath_stat_inc(dpath_stats_.tx_burst_calls_, 1);
     dpath_stat_inc(dpath_stats_.pkts_tx_, tx_batch_i_);
-
+    // * 这里应该是用来拥塞控制的函数。
     if (kCcRTT) {
       size_t batch_tsc = 0;
       if (kCcOptBatchTsc) batch_tsc = dpath_rdtsc();
 
       for (size_t i = 0; i < tx_batch_i_; i++) {
         if (tx_burst_arr_[i].tx_ts_ != nullptr) {
+          // 这里是时间戳，读每一个包的时间戳
           *tx_burst_arr_[i].tx_ts_ = kCcOptBatchTsc ? batch_tsc : dpath_rdtsc();
         }
       }
     }
-
+    // * 应该是这里发出去。
     transport_->tx_burst(tx_burst_arr_, tx_batch_i_);
+    // * 发出去之后，积攒的包的数量就归零了。
     tx_batch_i_ = 0;
   }
 

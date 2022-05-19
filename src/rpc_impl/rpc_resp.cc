@@ -37,6 +37,7 @@ void Rpc<TTr>::enqueue_response(ReqHandle *req_handle, MsgBuffer *resp_msgbuf) {
     return;  // During session reset, don't add packets to TX burst
   }
 
+  // * 填充零号头的内容
   // Fill in packet 0's header
   pkthdr_t *resp_pkthdr_0 = resp_msgbuf->get_pkthdr_0();
   resp_pkthdr_0->req_type_ = sslot->server_info_.req_type_;
@@ -46,6 +47,7 @@ void Rpc<TTr>::enqueue_response(ReqHandle *req_handle, MsgBuffer *resp_msgbuf) {
   resp_pkthdr_0->pkt_num_ = sslot->server_info_.sav_num_req_pkts_ - 1;
   resp_pkthdr_0->req_num_ = sslot->cur_req_num_;
 
+  // * 填充非零号头的内容，我们的RPC不需要这块。
   // Fill in non-zeroth packet headers, if any
   if (resp_msgbuf->num_pkts_ > 1) {
     // Headers for non-zeroth packets are created by copying the 0th header, and

@@ -35,10 +35,12 @@ void Rpc<TTr>::enqueue_request(int session_num, uint8_t req_type,
   size_t sslot_i = session->client_info_.sslot_free_vec_.pop_back();
   SSlot &sslot = session->sslot_arr_[sslot_i];
   assert(sslot.tx_msgbuf_ == nullptr);  // Previous response was received
+  // ! caution !!!!
   sslot.tx_msgbuf_ = req_msgbuf;        // Mark the request as active/incomplete
   sslot.cur_req_num_ += kSessionReqWindow;  // Move to next request
 
   auto &ci = sslot.client_info_;
+  // * 这里设置了client_info的resp_msgbuf，cont_func，tag，ev_loop_tsc_，num_rx_，num_tx_
   ci.resp_msgbuf_ = resp_msgbuf;
   ci.cont_func_ = cont_func;
   ci.tag_ = tag;
@@ -49,6 +51,7 @@ void Rpc<TTr>::enqueue_request(int session_num, uint8_t req_type,
   ci.num_tx_ = 0;
   ci.cont_etid_ = cont_etid;
 
+  // * 填充零号头的内容
   // Fill in packet 0's header
   pkthdr_t *pkthdr_0 = req_msgbuf->get_pkthdr_0();
   pkthdr_0->req_type_ = req_type;
@@ -58,12 +61,14 @@ void Rpc<TTr>::enqueue_request(int session_num, uint8_t req_type,
   pkthdr_0->pkt_num_ = 0;
   pkthdr_0->req_num_ = sslot.cur_req_num_;
 
+  // * 填充非零号头的内容，我们的RPC不需要这块。
+  // * 用零号头填充非零号头的内容。
   // Fill in any non-zeroth packet headers, using pkthdr_0 as the base.
   if (unlikely(req_msgbuf->num_pkts_ > 1)) {
     for (size_t i = 1; i < req_msgbuf->num_pkts_; i++) {
-      pkthdr_t *pkthdr_i = req_msgbuf->get_pkthdr_n(i);
-      memcpy(pkthdr_i, pkthdr_0, sizeof(pkthdr_t));
-      pkthdr_i->pkt_num_ = i;
+      pkthdr_t *pkthdr_i = req_msgbuf->get_pkthdr_n(i);//拿到第n个包的位置，
+      memcpy(pkthdr_i, pkthdr_0, sizeof(pkthdr_t));//然后用第零个包的内容信息填充
+      pkthdr_i->pkt_num_ = i;//将自己的序号改成i
     }
   }
 

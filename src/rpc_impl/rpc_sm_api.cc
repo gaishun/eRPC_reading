@@ -35,6 +35,7 @@ int Rpc<TTr>::create_session_st(std::string remote_uri, uint8_t rem_rpc_id) {
   }
 
   // Creating a session to one's own Rpc as the client is not allowed
+  // 一个 RPC 不能既充当 server 又充当 cient。
   if (rem_hostname == nexus_->hostname_ && rem_rpc_id == rpc_id_ &&
       rem_sm_udp_port == nexus_->sm_udp_port_) {
     ERPC_WARN("%s: Remote Rpc is same as local.\n", issue_msg);
@@ -69,10 +70,10 @@ int Rpc<TTr>::create_session_st(std::string remote_uri, uint8_t rem_rpc_id) {
   server_endpoint.rpc_id_ = rem_rpc_id;
   // server_endpoint.session_num = ??
   // server_endpoint.routing_info = ??
-
+  // * 这里是申请了什么ring？
   alloc_ring_entries();
   session_vec_.push_back(session);  // Add to list of all sessions
-
+  // * 这里 send了什么？ 获得 credit？
   send_sm_req_st(session);
   return client_endpoint.session_num_;
 }

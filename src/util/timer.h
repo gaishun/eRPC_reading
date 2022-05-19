@@ -16,6 +16,7 @@ namespace erpc {
 static inline size_t rdtsc() {
   uint64_t rax;
   uint64_t rdx;
+  // * 读时间戳
   asm volatile("rdtsc" : "=a"(rax), "=d"(rdx));
   return static_cast<size_t>((rdx << 32) | rax);
 }

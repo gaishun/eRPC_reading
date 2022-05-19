@@ -152,13 +152,13 @@ Buffer HugeAlloc::alloc_raw(size_t size, DoRegister do_register) {
   return Buffer(buf, SIZE_MAX, UINT32_MAX);
 #endif
 }
-
+// * 分配空间
 Buffer HugeAlloc::alloc(size_t size) {
   assert(size <= k_max_class_size);
 
-  size_t size_class = get_class(size);
+  size_t size_class = get_class(size);//!这个不知道是干嘛的。
   assert(size_class < k_num_classes);
-
+  // * 如果没有空闲，就直接需要重新分
   if (!freelist_[size_class].empty()) {
     return alloc_from_class(size_class);
   } else {
@@ -189,7 +189,7 @@ Buffer HugeAlloc::alloc(size_t size) {
       next_class--;
     }
 
-    assert(!freelist_[size_class].empty());
+    assert(!freelist_[size_class].empty());// * 肯定已经分配好了，（不空）是真
     return alloc_from_class(size_class);
   }
 
@@ -197,7 +197,7 @@ Buffer HugeAlloc::alloc(size_t size) {
   exit(-1);  // We should never get here
   return Buffer(nullptr, 0, 0);
 }
-
+// 预分配多个buffer的空间。
 bool HugeAlloc::reserve_hugepages(size_t size) {
   assert(size >= k_max_class_size);  // We need at least one max-sized buffer
   Buffer buffer = alloc_raw(size, DoRegister::kTrue);
